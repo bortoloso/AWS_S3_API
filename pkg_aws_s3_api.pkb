@@ -1,37 +1,112 @@
 create or replace package body pkg_aws_s3_api as
-
+  
+  lf varchar2(1) := chr(10);
+  g_aws_region varchar2(40) := 'sa-east-1';
+  g_aws_service varchar2(5) := 's3';
+  
   function uri_encode(
-    l_stringtosign   out number)
+    l_string in varchar2)
     return varchar2 is
   begin
-  
+  /*
+  Código em Java
+  public static String UriEncode(CharSequence input, boolean encodeSlash) {
+          StringBuilder result = new StringBuilder();
+          for (int i = 0; i < input.length(); i++) {
+              char ch = input.charAt(i);
+              if ((ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') || ch == '_' || ch == '-' || ch == '~' || ch == '.') {
+                  result.append(ch);
+              } else if (ch == '/') {
+                  result.append(encodeSlash ? "%2F" : ch);
+              } else {
+                  result.append(toHexUTF8(ch));
+              }
+          }
+          return result.toString();
+      }
+  */
   return null;
   end uri_encode;
 
-  function get_canonical_request(
-    l_stringtosign   out number)
+  function format_iso_8601(
+    p_date in date)
     return varchar2 is
   begin
   
   return null;
-  end get_canonical_request;
-  
-  function get_string_to_sign(
-    l_stringtosign   out number)
-    return varchar2 is
-  begin
-  
-  return null;
-  end get_string_to_sign;
 
-  function get_signature_sv4(
+  end format_iso_8601;
+
+  function sha256_hash(
+    p_src in raw)
+    return varchar2 is
+  begin
+  
+  return null;
+
+  end sha256_hash;
+
+  function hmac_sha256(
+    p_src in raw,
+    p_key in raw)
+    return raw is
+  begin
+  
+  return null;
+  end hmac_sha256;
+
+  function aws_canonical_request(
+    p_httpmethod in varchar2,
+    p_uri in varchar2,
+    p_querystring in varchar2,
+    p_headers in varchar2,
+    p_signedheaders in varchar2,
+    p_hashedpayload in varchar2)
+    return varchar2 is
+  begin
+  
+  return null;
+  end aws_canonical_request;
+  
+  function aws_string_to_sign(
+    p_hashed_request
+    p_date   out number)
+    return varchar2 is
+    l_return varchar2(1000);
+  begin
+  /*
+  StringToSign =
+    Algorithm + \n +
+    RequestDateTime + \n +
+    CredentialScope + \n +
+    HashedCanonicalRequest
+  date.Format(<YYYYMMDD>) + "/" + <region> + "/" + <service> + "/aws4_request"
+  */
+  l_return := 'AWS4-HMAC-SHA256'||lf||
+  format_iso_8601(p_date)||lf||
+  to_char(p_date, 'yyyymmdd')||'/'||g_aws_region||'/'||g_aws_service||'/aws4_request'||lf||
+  p_hashed_request;
+
+  return l_return;
+  end aws_string_to_sign;
+
+  function aws_signature(
     l_stringtosign   out number)
     return varchar2 is
   begin
   
   return null;
-  end get_signature_sv4;
+  end aws_signature;
   
+
+
+
+
+
+
+
+
+
   procedure put_object(
     p_bucketname varchar2,
     p_objectname varchar2) as
