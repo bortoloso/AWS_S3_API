@@ -22,6 +22,6 @@ package pkg_aws_s3_api as
   function get_object_tagging(
     p_bucketname varchar2,
     p_objectname varchar2)
-    return varchar2; -- criar tipo para a tag 
+    return clob; -- criar tipo para a tag 
 
 end pkg_aws_s3_api;
