@@ -1,9 +1,12 @@
 create or replace package body pkg_aws_s3_api as
   
   lf varchar2(1) := chr(10);
+  g_aws_algorithm varchar2(16) := 'AWS4-HMAC-SHA256';
   g_aws_region varchar2(40) := 'sa-east-1';
   g_aws_service varchar2(5) := 's3';
-  
+  g_termination_string varchar2(12) := 'aws4_request';
+  g_null_hash varchar2(100) := 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
+
   function uri_encode(
     l_string in varchar2)
     return varchar2 is
@@ -37,6 +40,15 @@ create or replace package body pkg_aws_s3_api as
 
   end format_iso_8601;
 
+  function base64(
+    p_src in raw)
+    return varchar2 is
+  begin
+  
+  return null;
+
+  end base64;
+
   function sha256_hash(
     p_src in raw)
     return varchar2 is
@@ -55,41 +67,166 @@ create or replace package body pkg_aws_s3_api as
   return null;
   end hmac_sha256;
 
+  /*
+  https://docs.aws.amazon.com/general/latest/gr/sigv4-create-canonical-request.html
+  */
   function aws_canonical_request(
     p_httpmethod in varchar2,
     p_uri in varchar2,
     p_querystring in varchar2,
     p_headers in varchar2,
     p_signedheaders in varchar2,
-    p_hashedpayload in varchar2)
+    p_payload in varchar2,
+    p_date in date)
     return varchar2 is
+  l_return varchar2(4000);
+  l_canonical_uri varchar2(200);
+  l_canonical_query_string varchar2(1000);
+  l_canonical_headers varchar2(1000);
+  l_signed_headers varchar2(1000);
+  l_hashedpayload varchar2(4000);
   begin
-  
-  return null;
+  /*
+  CanonicalRequest =
+    HTTPRequestMethod + '\n' +
+    CanonicalURI + '\n' +
+    CanonicalQueryString + '\n' +
+    CanonicalHeaders + '\n' +
+    SignedHeaders + '\n' +
+    HexEncode(Hash(RequestPayload))
+  */
+  -- HTTPMethod is one of the HTTP methods, for example GET, PUT, HEAD, and DELETE.
+  -- p_httpmethod
+
+  /*
+  CanonicalURI is the URI-encoded version of the absolute path component of the URI 
+  everything starting with the "/" that follows the domain name and up to the end of the string or
+  to the question mark character ('?') if you have query string parameters.
+  */
+  l_canonical_uri := nvl(trim(p_uri),'/');
+  if substr(p_uri,1,1) = '/' then
+    l_canonical_uri := uri_encode(p_uri);
+  else
+    l_canonical_uri := uri_encode('/'||p_uri);
+  end if;
+
+  /*
+  CanonicalQueryString specifies the URI-encoded query string parameters.
+  You URI-encode name and values individually.
+  You must also sort the parameters in the canonical query string alphabetically by key name.
+  The sorting occurs after encoding.
+  If the URI does not include a '?', 
+  there is no query string in the request, 
+  and you set the canonical query string to an empty string ("")
+  UriEncode("marker")+"="+UriEncode("someMarker")+"&"+
+  UriEncode("max-keys")+"="+UriEncode("20") + "&" +
+  */
+  l_canonical_query_string := '';
+
+  /*
+  CanonicalHeaders is a list of request headers with their values.
+  Individual header name and value pairs are separated by the newline character ("\n").
+  Header names must be in lowercase.
+  You must sort the header names alphabetically to construct the string
+  Lowercase(<HeaderName1>)+":"+Trim(<value>)+"\n"
+  Lowercase(<HeaderName2>)+":"+Trim(<value>)+"\n"
+
+  The CanonicalHeaders list must include the following:
+
+    HTTP host header.
+
+    If the Content-Type header is present in the request, you must add it to the CanonicalHeaders list.
+
+    Any x-amz-* headers that you plan to include in your request must also be added.
+    For example, if you are using temporary security credentials, 
+    you need to include x-amz-security-token in your request
+
+    The x-amz-content-sha256 header is required for all AWS Signature Version 4 requests.
+    It provides a hash of the request payload. If there is no payload, 
+    you must provide the hash of an empty string. 
+ */
+  l_canonical_headers := '';
+
+  /*
+  SignedHeaders is an alphabetically sorted, semicolon-separated list of lowercase request header names.
+  The request headers in the list are the same headers that you included in the CanonicalHeaders string.
+  */
+  l_signed_headers := '';
+
+  /*
+  HashedPayload is the hexadecimal value of the SHA256 hash of the request payload.
+  */
+  l_hashedpayload := sha256_hash(p_payload);
+
+  l_return =
+    p_httpmethod||lf||
+    l_canonical_uri||lf||
+    l_canonical_query_string||lf||
+    l_canonical_headers||lf||
+    l_signed_headers||lf||
+    l_hashedpayload;
+
+  return l_return;
   end aws_canonical_request;
   
+  /*
+  https://docs.aws.amazon.com/general/latest/gr/sigv4-create-string-to-sign.html
+  */
   function aws_string_to_sign(
-    p_hashed_request
-    p_date   out number)
+    p_hashed_request in varchar2,
+    p_date in date)
     return varchar2 is
     l_return varchar2(1000);
   begin
-  /*
-  StringToSign =
-    Algorithm + \n +
-    RequestDateTime + \n +
-    CredentialScope + \n +
-    HashedCanonicalRequest
-  date.Format(<YYYYMMDD>) + "/" + <region> + "/" + <service> + "/aws4_request"
-  */
-  l_return := 'AWS4-HMAC-SHA256'||lf||
+  l_return := g_aws_algorithm||lf||
   format_iso_8601(p_date)||lf||
-  to_char(p_date, 'yyyymmdd')||'/'||g_aws_region||'/'||g_aws_service||'/aws4_request'||lf||
+  to_char(p_date, 'yyyymmdd')||'/'||g_aws_region||'/'||g_aws_service||'/'||g_termination_string||lf||
   p_hashed_request;
 
   return l_return;
   end aws_string_to_sign;
 
+  /*
+  https://docs.aws.amazon.com/general/latest/gr/sigv4-calculate-signature.html
+  */
+  function aws_signature(
+    l_stringtosign in varchar2)
+    return varchar2 is
+  l_return varchar2(200);
+  begin
+  
+  return l_return;
+  end aws_signature;
+  
+  function aws_authorization_header(
+    l_stringtosign in varchar2)
+    return varchar2 is
+  l_canonical_request varchar2(1000);
+  l_string_to_sign varchar2(1000);
+  l_signature varchar2(200);
+  begin
+  l_canonical_request := aws_canonical_request(
+                        p_httpmethod => ,
+                        p_uri => ,
+                        p_querystring => ,
+                        p_headers => ,
+                        p_signedheaders => ,
+                        p_hashedpayload => 
+                        p_date => );
+
+  l_string_to_sign := aws_string_to_sign(
+                        p_hashed_request => l_canonical_request
+                        p_date => );
+
+  l_signature := aws_signature();
+  
+  return l_signature;
+  end aws_authorization_header;
+
+
+
+
+/*
   function aws_signature(
     l_stringtosign   out number)
     return varchar2 is
@@ -97,15 +234,7 @@ create or replace package body pkg_aws_s3_api as
   
   return null;
   end aws_signature;
-  
-
-
-
-
-
-
-
-
+*/
 
   procedure put_object(
     p_bucketname varchar2,
