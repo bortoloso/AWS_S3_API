@@ -77,7 +77,7 @@ create or replace package body pkg_aws_s3_api as
     p_uri in varchar2,
     p_querystring in t_query_string_list,
     p_headers in t_headers_list,
-    p_payload in varchar2,
+    p_hashed_payload in varchar2,
     p_date in date)
     return varchar2 is
   l_return varchar2(4000);
@@ -85,7 +85,7 @@ create or replace package body pkg_aws_s3_api as
   l_canonical_query_string varchar2(1000);
   l_canonical_headers varchar2(1000);
   l_signed_headers varchar2(1000);
-  l_hashedpayload varchar2(4000);
+  l_hashed_payload varchar2(4000);
   begin
   /*
   CanonicalRequest =
@@ -123,6 +123,14 @@ create or replace package body pkg_aws_s3_api as
   UriEncode("max-keys")+"="+UriEncode("20") + "&" +
   */
   l_canonical_query_string := '';
+  if (p_querystring is not null) and
+     (p_querystring.count > 0) then
+    for i in 1 .. p_querystring.count loop
+      l_canonical_query_string := l_canonical_query_string ||
+      uri_encode(p_querystring(i).name)||'='||uri_encode(p_querystring(i).value)||'&';
+    end loop;
+    l_canonical_query_string := substr(l_canonical_query_string,1,length(l_canonical_query_string)-1);
+  end if;
 
   /*
   CanonicalHeaders is a list of request headers with their values.
@@ -146,18 +154,33 @@ create or replace package body pkg_aws_s3_api as
     It provides a hash of the request payload. If there is no payload, 
     you must provide the hash of an empty string. 
  */
-  l_canonical_headers := '';
-
   /*
   SignedHeaders is an alphabetically sorted, semicolon-separated list of lowercase request header names.
   The request headers in the list are the same headers that you included in the CanonicalHeaders string.
   */
+  l_canonical_headers := '';
   l_signed_headers := '';
+  if (p_headers is not null) and
+     (p_headers.count > 0) then
+    for i in 1 .. p_headers.count loop
+
+      if (lower(p_headers(i).name) in ('host','content-type') or
+         (substr(lower(p_headers(i).name),1,6) = 'x-amz-') then
+        l_canonical_headers := l_canonical_headers ||
+        lower(p_headers(i).name)||':'||trim(p_headers(i).value)||lf;
+        
+        l_signed_headers := l_signed_headers ||
+        lower(p_headers(i).name)||';';
+      end if;
+      l_signed_headers := substr(l_signed_headers,1,length(l_signed_headers)-1);
+    end loop;
+  end if;
+
 
   /*
-  HashedPayload is the hexadecimal value of the SHA256 hash of the request payload.
+  hashed_payload is the hexadecimal value of the SHA256 hash of the request payload.
   */
-  l_hashedpayload := sha256_hash(p_payload);
+  l_hashed_payload := p_hashed_payload ; --sha256_hash(p_hashed_payload);
 
   l_return =
     p_httpmethod||lf||
@@ -165,7 +188,7 @@ create or replace package body pkg_aws_s3_api as
     l_canonical_query_string||lf||
     l_canonical_headers||lf||
     l_signed_headers||lf||
-    l_hashedpayload;
+    l_hashed_payload;
 
   return l_return;
   end aws_canonical_request;
@@ -224,7 +247,7 @@ create or replace package body pkg_aws_s3_api as
     p_uri in varchar2,
     p_querystring in t_query_string_list,
     p_headers in out nocopy t_headers_list,
-    p_payload in varchar2,
+    p_hashed_payload in varchar2,
     p_date in date,
     p_url out varchar2)
     return varchar2 is
@@ -233,12 +256,14 @@ create or replace package body pkg_aws_s3_api as
   l_signature varchar2(200);
   begin
 
+
+
   l_canonical_request := aws_canonical_request(
                         p_httpmethod => p_httpmethod,
                         p_uri => p_uri,
                         p_querystring => p_querystring,
                         p_headers => p_headers,
-                        p_payload => p_payload,
+                        p_hashed_payload => p_hashed_payload,
                         p_date => p_date);
 
   l_string_to_sign := aws_string_to_sign(
@@ -250,10 +275,9 @@ create or replace package body pkg_aws_s3_api as
                         p_date => p_date);
   
   --return l_signature;
+
+  p_url := 'https://'||p_bucketname||'.s3-sa-east-1.amazonaws.com/';
   end aws_authorization_string;
-
-
-
 
 /*
   function aws_signature(
@@ -305,13 +329,15 @@ create or replace package body pkg_aws_s3_api as
   l_headers t_headers_list;
   l_query_string t_query_string_list;
   l_date date;
-  l_payload varchar2(4000);
+  l_hashed_payload varchar2(4000);
   l_url varchar2(1000);
   begin
   -- UTL_HTTP.SET_HEADER(l_http_request, 'Authorization', l_auth);
-  -- UTL_HTTP.SET_HEADER(l_http_request, 'x-amz-content-sha256', l_payload_hash);
+  -- UTL_HTTP.SET_HEADER(l_http_request, 'x-amz-content-sha256', l_hashed_payload);
   -- UTL_HTTP.SET_HEADER(l_http_request, 'x-amz-date', l_time_string);
   l_method := 'GET';
+  l_headers(0).name := 'host';
+  l_headers(0).value := '';
   l_headers(1).name := 'Authorization';
   l_headers(1).value := '';
   l_headers(2).name := 'x-amz-content-sha256';
@@ -323,7 +349,7 @@ create or replace package body pkg_aws_s3_api as
   l_query_string(1).value := '';
 
   l_date := sysdate;
-  l_payload := '';
+  l_hashed_payload := sha256_hash('');
 
   aws_authorization_string(
     l_method,
@@ -331,7 +357,7 @@ create or replace package body pkg_aws_s3_api as
     p_objectname,
     l_query_string,
     l_headers,
-    l_payload,
+    l_hashed_payload,
     l_date,
     l_url);
 
