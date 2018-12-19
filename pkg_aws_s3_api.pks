@@ -1,6 +1,20 @@
 create or replace 
 package pkg_aws_s3_api as 
 
+  type t_headers is record (
+    name varchar2(255),
+    value varchar2(255)
+  );
+  type t_headers_list is table of t_headers index by pls_integer;
+  type t_headers_tab is table of t_headers;
+
+  type t_query_string is record (
+    name varchar2(255),
+    value varchar2(255)
+  );
+  type t_query_string_list is table of t_query_string index by pls_integer;
+  type t_query_string_tab is table of t_query_string;
+
 -- https://docs.aws.amazon.com/AmazonS3/latest/API/RESTObjectPUT.html
   procedure put_object(
     p_bucketname varchar2,
