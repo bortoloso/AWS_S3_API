@@ -1,5 +1,4 @@
-create or replace 
-package pkg_aws_s3_api as 
+create or replace package pkg_aws_s3_api as 
 
   type t_headers is record (
     name varchar2(255),
@@ -16,7 +15,8 @@ package pkg_aws_s3_api as
 -- https://docs.aws.amazon.com/AmazonS3/latest/API/RESTObjectPUT.html
   procedure put_object(
     p_bucketname varchar2,
-    p_objectname varchar2);
+    p_objectname varchar2,
+    p_blob       in blob);
 
 -- https://docs.aws.amazon.com/AmazonS3/latest/API/RESTObjectPUTtagging.html
   procedure put_object_tagging(
