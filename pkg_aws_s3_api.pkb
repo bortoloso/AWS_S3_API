@@ -10,6 +10,7 @@ create or replace package body pkg_aws_s3_api as
 
 
   g_aws_algorithm varchar2(16) := 'AWS4-HMAC-SHA256';
+  g_ISO8601_format varchar2(22) := 'YYYYMMDD"T"HH24MISS"Z"';
   g_aws_region varchar2(40) := 'sa-east-1';
   --g_aws_region varchar2(40) := 'us-east-1';
   g_aws_service varchar2(5) := 's3';
@@ -47,8 +48,9 @@ create or replace package body pkg_aws_s3_api as
     l_timestamp   timestamp;
     l_iso_8601    varchar2(60);
   begin
-
-  return to_char(p_date,'YYYYMMDD"T"HH24MISS"Z"');
+  
+  return return to_char(sys_extract_utc(cast(p_date as timestamp with time zone)), g_ISO8601_format);;
+  --return to_char(p_date,'YYYYMMDD"T"HH24MISS"Z"');
 
   end format_iso_8601;
 
