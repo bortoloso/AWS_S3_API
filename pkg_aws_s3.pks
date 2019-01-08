@@ -1,4 +1,4 @@
-create or replace package pkg_aws_s3 as 
+create or replace package pkg_aws_s3_api as 
 
   type t_headers is record (
     name varchar2(255),
@@ -36,4 +36,4 @@ create or replace package pkg_aws_s3 as
     p_objectname varchar2)
     return clob; -- criar tipo para a tag 
 
-end pkg_aws_s3;
+end pkg_aws_s3_api;

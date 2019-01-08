@@ -1,4 +1,5 @@
 create or replace package body pkg_aws_s3 as
+
   
   /*
   g_acess_key_id                  varchar2(20) := '== Access Key ID ==';  -- Access Key ID DEFAULT
@@ -7,13 +8,11 @@ create or replace package body pkg_aws_s3 as
   g_wallet_password varchar2(1000) := '== Wallet Password ==';
   */
 
-
-
-  g_aws_algorithm varchar2(16) := 'AWS4-HMAC-SHA256';
+  g_algorithm varchar2(16) := 'AWS4-HMAC-SHA256';
   g_ISO8601_format varchar2(22) := 'YYYYMMDD"T"HH24MISS"Z"';
-  g_aws_region varchar2(40) := 'sa-east-1';
-  --g_aws_region varchar2(40) := 'us-east-1';
-  g_aws_service varchar2(5) := 's3';
+  g_region varchar2(40) := 'sa-east-1';
+  --g_region varchar2(40) := 'us-east-1';
+  g_service varchar2(5) := 's3';
   g_termination_string varchar2(12) := 'aws4_request';
   g_null_hash varchar2(100) := 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
   lf varchar2(1) := chr(10);
@@ -22,7 +21,8 @@ create or replace package body pkg_aws_s3 as
     l_string in varchar2)
     return varchar2 is
   begin
-  /*
+  
+  /*  
   Código em Java
   public static String UriEncode(CharSequence input, boolean encodeSlash) {
           StringBuilder result = new StringBuilder();
@@ -119,7 +119,7 @@ create or replace package body pkg_aws_s3 as
   /*
   https://docs.aws.amazon.com/general/latest/gr/sigv4-create-canonical-request.html
   */
-  function aws_canonical_request(
+  function canonical_request(
     p_httpmethod in varchar2,
     p_bucketname in varchar2,
     p_uri in varchar2,
@@ -163,12 +163,12 @@ create or replace package body pkg_aws_s3 as
   end if;
 
   if (p_bucketname is not null) then
-    if (g_aws_region = 'us-east-1') then
+    if (g_region = 'us-east-1') then
       l_host := p_bucketname||'.s3.amazonaws.com';
       p_url := 'https://'||p_bucketname||'.s3.amazonaws.com'||l_canonical_uri;
     else
-      l_host := p_bucketname||'.s3.'||g_aws_region||'.amazonaws.com';
-      p_url := 'https://'||p_bucketname||'.s3.'||g_aws_region||'.amazonaws.com'||l_canonical_uri;
+      l_host := p_bucketname||'.s3.'||g_region||'.amazonaws.com';
+      p_url := 'https://'||p_bucketname||'.s3.'||g_region||'.amazonaws.com'||l_canonical_uri;
     end if;
   else
     l_host := 'host:s3.amazonaws.com';
@@ -269,12 +269,12 @@ create or replace package body pkg_aws_s3 as
   dbms_output.put_line('===============================');
   */
   return l_return;
-  end aws_canonical_request;
+  end canonical_request;
 
   /*
   https://docs.aws.amazon.com/general/latest/gr/sigv4-create-string-to-sign.html
   */
-  function aws_string_to_sign(
+  function string_to_sign(
     p_canonical_request in varchar2,
     p_date in date)
     return varchar2 is
@@ -289,9 +289,9 @@ create or replace package body pkg_aws_s3 as
   dbms_output.put_line(l_hashed_request);
   dbms_output.put_line('===============================');*/
 
-  l_return := g_aws_algorithm||lf||
+  l_return := g_algorithm||lf||
   format_iso_8601(p_date)||lf||
-  to_char(p_date, 'yyyymmdd')||'/'||g_aws_region||'/'||g_aws_service||'/'||g_termination_string||lf||
+  to_char(p_date, 'yyyymmdd')||'/'||g_region||'/'||g_service||'/'||g_termination_string||lf||
   l_hashed_request;
   /*
   dbms_output.put_line('===============================');
@@ -301,12 +301,12 @@ create or replace package body pkg_aws_s3 as
   */
 
   return l_return;
-  end aws_string_to_sign;
+  end string_to_sign;
 
   /*
   https://docs.aws.amazon.com/general/latest/gr/sigv4-calculate-signature.html
   */
-  function aws_signature(
+  function signature(
     p_string_to_sign in varchar2,
     p_date in date)
     return varchar2 is
@@ -325,8 +325,8 @@ create or replace package body pkg_aws_s3 as
   */
 
   l_datekey               := hmac_sha256(utl_i18n.string_to_raw('AWS4'||g_secrec_acess_key,'AL32UTF8'), utl_i18n.string_to_raw(to_char(p_date, 'yyyymmdd'),'AL32UTF8'));
-  l_dateregionkey         := hmac_sha256(l_datekey, utl_i18n.string_to_raw(g_aws_region,'AL32UTF8'));
-  l_dateregionserviceKey  := hmac_sha256(l_dateregionkey, utl_i18n.string_to_raw(g_aws_service,'AL32UTF8'));
+  l_dateregionkey         := hmac_sha256(l_datekey, utl_i18n.string_to_raw(g_region,'AL32UTF8'));
+  l_dateregionserviceKey  := hmac_sha256(l_dateregionkey, utl_i18n.string_to_raw(g_service,'AL32UTF8'));
   l_signingkey            := hmac_sha256(l_dateregionserviceKey, utl_i18n.string_to_raw(g_termination_string,'AL32UTF8'));
 
   l_raw_return            := hmac_sha256(l_signingkey, utl_i18n.string_to_raw(p_string_to_sign,'AL32UTF8'));
@@ -338,9 +338,9 @@ create or replace package body pkg_aws_s3 as
   dbms_output.put_line('===============================');
   */
   return l_return;
-  end aws_signature;
+  end signature;
 
-  procedure aws_authorization_string(
+  procedure authorization_string(
     p_httpmethod in varchar2,
     p_bucketname in varchar2,
     p_uri in varchar2,
@@ -355,7 +355,7 @@ create or replace package body pkg_aws_s3 as
   l_authorization_string varchar2(4000);
   l_signed_headers varchar2(1000);
   begin
-  l_canonical_request := aws_canonical_request(
+  l_canonical_request := canonical_request(
                         p_httpmethod => p_httpmethod,
                         p_bucketname => p_bucketname,
                         p_uri => p_uri,
@@ -365,12 +365,12 @@ create or replace package body pkg_aws_s3 as
                         p_date => p_date,
                         p_url => p_url);
 
-  l_string_to_sign := aws_string_to_sign(
+  l_string_to_sign := string_to_sign(
                         p_canonical_request => l_canonical_request,
                         p_date => p_date);
   --dbms_output.put_line('StringToSign: '||l_string_to_sign);
   --dbms_output.put_line('new: '||l_string_to_sign);
-  l_signature := aws_signature(
+  l_signature := signature(
                         p_string_to_sign =>l_string_to_sign,
                         p_date => p_date);
   dbms_output.put_line('new: '||l_signature);
@@ -387,8 +387,8 @@ create or replace package body pkg_aws_s3 as
     end loop;
     l_signed_headers := substr(l_signed_headers,1,length(l_signed_headers)-1);
   end if;
-  l_authorization_string := g_aws_algorithm||
-    ' Credential='||g_acess_key_id||'/'||to_char(p_date,'yyyymmdd')||'/'||g_aws_region||'/s3/aws4_request,'||
+  l_authorization_string := g_algorithm||
+    ' Credential='||g_acess_key_id||'/'||to_char(p_date,'yyyymmdd')||'/'||g_region||'/s3/aws4_request,'||
     ' SignedHeaders='||l_signed_headers||','||
     ' Signature='||l_signature ;
   p_headers(2).value := l_authorization_string;
@@ -400,16 +400,16 @@ create or replace package body pkg_aws_s3 as
   dbms_output.put_line('===============================');
   */
   --return l_signature;
-  end aws_authorization_string;
+  end authorization_string;
 
 /*
-  function aws_signature(
+  function signature(
     l_stringtosign   out number)
     return varchar2 is
   begin
 
   return null;
-  end aws_signature;
+  end signature;
 */
 
   procedure put_object(
@@ -461,7 +461,7 @@ create or replace package body pkg_aws_s3 as
   l_headers(7).name := 'x-amz-tagging';
   l_headers(7).value := 'tag1=value1&tag2=value2';
 
-  aws_authorization_string(
+  authorization_string(
     l_method,
     p_bucketname,
     p_objectname,
@@ -552,7 +552,7 @@ create or replace package body pkg_aws_s3 as
   l_headers(4).name := 'x-amz-date';
   l_headers(4).value := format_iso_8601(l_date);
 
-  aws_authorization_string(
+  authorization_string(
     l_method,
     p_bucketname,
     p_objectname,
@@ -633,7 +633,7 @@ create or replace package body pkg_aws_s3 as
   l_headers(4).name := 'x-amz-date';
   l_headers(4).value := format_iso_8601(l_date);
 
-  aws_authorization_string(
+  authorization_string(
     l_method,
     p_bucketname,
     p_objectname,
@@ -729,7 +729,7 @@ create or replace package body pkg_aws_s3 as
   l_query_string(1).value := '';
 
 
-  aws_authorization_string(
+  authorization_string(
     l_method,
     p_bucketname,
     p_objectname,
