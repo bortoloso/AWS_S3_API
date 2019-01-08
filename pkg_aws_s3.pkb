@@ -1,11 +1,11 @@
-create or replace package body pkg_aws_s3_api as
+create or replace package body pkg_aws_s3 as
   
-  
+  /*
   g_acess_key_id                  varchar2(20) := '== Access Key ID ==';  -- Access Key ID DEFAULT
   g_secrec_acess_key                 varchar2(40) := '== Secret access Key =='; -- Secret access Key DEFAULT
   g_wallet_path varchar2(1000) := '== Wallet Path ==';
   g_wallet_password varchar2(1000) := '== Wallet Password ==';
-  
+  */
 
 
 
@@ -39,6 +39,7 @@ create or replace package body pkg_aws_s3_api as
           return result.toString();
       }
   */
+    
   return l_string;
   end uri_encode;
 
@@ -767,4 +768,4 @@ create or replace package body pkg_aws_s3_api as
   return l_clob;
   end get_object_tagging;
 
-end pkg_aws_s3_api;
+end pkg_aws_s3;
