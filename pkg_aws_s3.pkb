@@ -8,6 +8,8 @@ create or replace package body pkg_aws_s3 as
   g_wallet_password varchar2(1000) := '== Wallet Password ==';
   */
 
+
+
   g_algorithm varchar2(16) := 'AWS4-HMAC-SHA256';
   g_ISO8601_format varchar2(22) := 'YYYYMMDD"T"HH24MISS"Z"';
   g_region varchar2(40) := 'sa-east-1';
@@ -21,7 +23,7 @@ create or replace package body pkg_aws_s3 as
     l_string in varchar2)
     return varchar2 is
   begin
-  
+
   /*  
   Código em Java
   public static String UriEncode(CharSequence input, boolean encodeSlash) {
@@ -50,17 +52,69 @@ create or replace package body pkg_aws_s3 as
     l_iso_8601    varchar2(60);
   begin
   
-  return return to_char(sys_extract_utc(cast(p_date as timestamp with time zone)), g_ISO8601_format);;
+  return to_char(sys_extract_utc(cast(p_date as timestamp with time zone)), g_ISO8601_format);
   --return to_char(p_date,'YYYYMMDD"T"HH24MISS"Z"');
 
   end format_iso_8601;
 
-  function base64(
-    p_src in raw)
+function md5_hash(
+    p_src in varchar2)
     return varchar2 is
+  l_return varchar2(2000);
+  l_hash raw(2000);
+  l_src raw(2000);
   begin
 
-  return null;
+  l_src    := utl_i18n.string_to_raw(p_src,'AL32UTF8');
+  l_hash      := dbms_crypto.hash(
+                  src => l_src,
+                  typ => dbms_crypto.hash_md5
+                );
+
+  l_return := lower(rawtohex(l_hash));
+
+  return l_return;
+
+  end md5_hash;
+
+function md5_hash(
+    p_src in blob)
+    return varchar2 is
+  l_return varchar2(2000);
+  l_hash raw(2000);
+  begin
+
+  l_hash      := dbms_crypto.hash(
+                  src => p_src,
+                  typ => dbms_crypto.hash_md5
+                );
+
+  l_return := lower(rawtohex(l_hash));
+
+  return l_return;
+
+  end md5_hash;
+
+  function base64(
+    p_src in varchar2)
+    return varchar2 is
+
+  l_return varchar2(2000);
+  l_hash raw(2000);
+  l_src raw(2000);
+  begin
+
+  l_src    := utl_i18n.string_to_raw(p_src,'AL32UTF8');
+  l_return := utl_encode.base64_encode (l_src);
+
+  l_hash      := dbms_crypto.hash(
+                  src => l_src,
+                  typ => dbms_crypto.hash_sh256
+                );
+
+  l_return := rawtohex(l_hash);
+
+  return l_return;
 
   end base64;
 
@@ -88,7 +142,6 @@ create or replace package body pkg_aws_s3 as
     return varchar2 is
   l_return varchar2(2000);
   l_hash raw(2000);
-  l_src raw(2000);
   begin
 
   l_hash      := dbms_crypto.hash(
@@ -236,7 +289,7 @@ create or replace package body pkg_aws_s3 as
   if (p_headers is not null) and
      (p_headers.count > 0) then
     for i in 1 .. p_headers.count loop
-      if ((lower(p_headers(i).name) in ('host',/*'content-type',*/'range')) or
+      if ((lower(p_headers(i).name) in ('host',/*'content-type',*/'range','content-md5')) or
          (substr(lower(p_headers(i).name),1,6) = 'x-amz-')) then
         l_canonical_headers := l_canonical_headers ||
          lower(p_headers(i).name)||':'||trim(p_headers(i).value)||lf;
@@ -379,7 +432,7 @@ create or replace package body pkg_aws_s3 as
   if (p_headers is not null) and
      (p_headers.count > 0) then
     for i in 1 .. p_headers.count loop
-      if ((lower(p_headers(i).name) in ('host',/*'content-type',*/'range')) or
+      if ((lower(p_headers(i).name) in ('host',/*'content-type',*/'range','content-md5')) or
          (substr(lower(p_headers(i).name),1,6) = 'x-amz-')) then
         l_signed_headers := l_signed_headers ||
         lower(p_headers(i).name)||';';
@@ -418,22 +471,22 @@ create or replace package body pkg_aws_s3 as
     p_blob       in blob) as
     
     
-      l_clob clob;
-  l_blob blob;
-  l_url varchar2(4000);
-  l_req utl_http.req;
-  l_resp utl_http.resp;
-  l_data varchar2(32767);
-  l_raw raw(32767);
-  
-  l_method varchar2(6);
-  l_headers t_headers_list;
-  l_query_string t_query_string_list;
-  l_date date;
-  l_hashed_payload varchar2(4000);
-  
-      l_buffer    raw(32767);
-    
+    l_clob clob;
+    l_blob blob;
+    l_url varchar2(4000);
+    l_req utl_http.req;
+    l_resp utl_http.resp;
+    l_data varchar2(32767);
+    l_raw raw(32767);
+
+    l_method varchar2(6);
+    l_headers t_headers_list;
+    l_query_string t_query_string_list;
+    l_date date;
+    l_hashed_payload varchar2(4000);
+
+    l_buffer    raw(32767);
+
     l_length    integer;
     l_offset    number(15) := 1;
     l_value     varchar2(1024);
@@ -452,14 +505,21 @@ create or replace package body pkg_aws_s3 as
   l_headers(2).value := '';
   l_headers(3).name := 'Content-Length';
   l_headers(3).value := l_content_length;
-  l_headers(4).name := 'Content-Type';
-  l_headers(4).value := 'application/pdf';
+
+
+    l_headers(4).name := 'Content-MD5';
+    l_headers(4).value := base64(md5_hash(P_BLOB));
+
+-- l_headers(4).name := 'Content-Type';
+ -- l_headers(4).value := 'application/pdf';
   l_headers(5).name := 'x-amz-content-sha256';
   l_headers(5).value := l_hashed_payload;
   l_headers(6).name := 'x-amz-date';
   l_headers(6).value := format_iso_8601(l_date);
   l_headers(7).name := 'x-amz-tagging';
-  l_headers(7).value := 'tag1=value1&tag2=value2';
+  l_headers(7).value := 'tag1=value1'||'&'||'tag2=value2';
+
+
 
   authorization_string(
     l_method,
