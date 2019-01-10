@@ -1,4 +1,4 @@
-create or replace package body pkg_aws_s3_api as
+create or replace package body pkg_aws_s3 as
 
     /*
             VARIABLES
@@ -13,10 +13,10 @@ create or replace package body pkg_aws_s3_api as
     /*
           CONSTANTS AUTH
             */
-    g_acess_key_id_default constant varchar2(20) := '== Access Key ID =='; /* Access Key ID DEFAULT */
-    g_secrec_acess_key_default constant varchar2(40) := '== Secret access Key =='; /* Secret access Key DEFAULT */
-    g_wallet_path_default constant varchar2(1000) := '== Wallet Path =='; /* Wallet DEFAUL */
-    g_wallet_password_default constant varchar2(1000) := '== Wallet Password =='; /* Wallet Password  DEFAULT*/
+    g_acess_key_id_default constant varchar2(20) := 'AKIEXAMPLE12345678A'; /* Access Key ID DEFAULT */
+    g_secrec_acess_key_default constant varchar2(40) := 'abc123abc123abc213abc123ABC123ABC123ABC1'; /* Secret access Key DEFAULT */
+    g_wallet_path_default constant varchar2(1000) := 'file:/opt/oracle/wallets/amazon_aws'; /* Wallet DEFAUL */
+    g_wallet_password_default constant varchar2(1000) := 'password'; /* Wallet Password  DEFAULT*/
     g_region_default constant varchar2(40) := 'sa-east-1'; /* Region S3 DEFAULT */
 
     /*
@@ -28,6 +28,20 @@ create or replace package body pkg_aws_s3_api as
     g_termination_string constant varchar2(12) := 'aws4_request';
     g_null_hash constant varchar2(100) := 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
     lf constant varchar2(1) := chr(10);
+
+    procedure init(
+        p_acess_key_id varchar2 default null,
+        p_secrec_acess_key varchar2 default null,
+        p_wallet_path varchar2 default null,
+        p_wallet_password varchar2 default null,
+        p_region varchar2 default null) is
+    begin
+    g_acess_key_id      := nvl(p_acess_key_id, g_acess_key_id_default);
+    g_secrec_acess_key  := nvl(p_secrec_acess_key, g_secrec_acess_key_default);
+    g_wallet_path       := nvl(p_wallet_path, g_wallet_path_default);
+    g_wallet_password   := nvl(p_wallet_password, g_wallet_password_default);
+    g_region            := nvl(p_region, g_region_default);
+    end;
 
     function uri_encode(
         p_char_sequence in varchar2,
@@ -793,5 +807,5 @@ create or replace package body pkg_aws_s3_api as
     return l_clob;
     end get_object_tagging;
 
-end pkg_aws_s3_api;
+end pkg_aws_s3;
 /
