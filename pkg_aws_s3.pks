@@ -27,14 +27,11 @@ create or replace package pkg_aws_s3 as
         reason_phrase varchar2(256),
         http_version varchar2(64),
         headers t_headers,
-        resp_code varchar2(100),
-        resp_message varchar2(1000),
-        resp_resource varchar2(1000),
-        resp_request_id varchar2(100),
+        code varchar2(100),
+        message varchar2(1000),
         xmldata xmltype,
         clobdata clob
         );
-    -- type t_error is table of r_error index by pls_integer;
 
     procedure init(
         p_acess_key_id varchar2 default null,
@@ -59,7 +56,7 @@ create or replace package pkg_aws_s3 as
         p_region varchar2);
 
     function get_error_detail
-        return t_error
+        return r_error;
 
 /* https://docs.aws.amazon.com/AmazonS3/latest/API/RESTObjectPUT.html */
     procedure put_object(

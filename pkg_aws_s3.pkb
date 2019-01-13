@@ -142,10 +142,10 @@ create or replace package body pkg_aws_s3 as
         p_encode_slash in pls_integer default 1)
         return varchar2 is
     /*
-            p_encode_slash
-                0 - false
-                1 - true
-            */
+    p_encode_slash
+        0 - false
+        1 - true
+    */
     l_result varchar2(4000);
     l_ch varchar2(1);
     begin
@@ -285,8 +285,8 @@ create or replace package body pkg_aws_s3 as
     end hmac_sha256;
 
     /*
-            https://docs.aws.amazon.com/general/latest/gr/sigv4-create-canonical-request.html
-            */
+    https://docs.aws.amazon.com/general/latest/gr/sigv4-create-canonical-request.html
+    */
     function canonical_request(
         p_httpmethod in varchar2,
         p_bucketname in varchar2,
@@ -307,22 +307,22 @@ create or replace package body pkg_aws_s3 as
     begin
 
     /*
-            CanonicalRequest =
-            HTTPRequestMethod + '\n' +
-            CanonicalURI + '\n' +
-            CanonicalQueryString + '\n' +
-            CanonicalHeaders + '\n' +
-            SignedHeaders + '\n' +
-            HexEncode(Hash(RequestPayload))
-            */
+    CanonicalRequest =
+    HTTPRequestMethod + '\n' +
+    CanonicalURI + '\n' +
+    CanonicalQueryString + '\n' +
+    CanonicalHeaders + '\n' +
+    SignedHeaders + '\n' +
+    HexEncode(Hash(RequestPayload))
+    */
   -- HTTPMethod is one of the HTTP methods, for example GET, PUT, HEAD, and DELETE.
   -- p_httpmethod
 
     /*
-            CanonicalURI is the URI-encoded version of the absolute path component of the URI
-            everything starting with the "/" that follows the domain name and up to the end of the string or
-            to the question mark character ('?') if you have query string parameters.
-            */
+    CanonicalURI is the URI-encoded version of the absolute path component of the URI
+    everything starting with the "/" that follows the domain name and up to the end of the string or
+    to the question mark character ('?') if you have query string parameters.
+    */
     l_canonical_uri := nvl(trim(p_uri),'/');
     if substr(p_uri,1,1) = '/' then
         l_canonical_uri := uri_encode(p_uri,0);
@@ -347,16 +347,16 @@ create or replace package body pkg_aws_s3 as
     p_headers(p_headers(-1).value).value := l_host;
 
     /*
-            CanonicalQueryString specifies the URI-encoded query string parameters.
-            You URI-encode name and values individually.
-            You must also sort the parameters in the canonical query string alphabetically by key name.
-            The sorting occurs after encoding.
-            If the URI does not include a '?',
-            there is no query string in the request,
-            and you set the canonical query string to an empty string ("")
-            UriEncode("marker")+"="+UriEncode("someMarker")+"&"+
-            UriEncode("max-keys")+"="+UriEncode("20") + "&" +
-            */
+    CanonicalQueryString specifies the URI-encoded query string parameters.
+    You URI-encode name and values individually.
+    You must also sort the parameters in the canonical query string alphabetically by key name.
+    The sorting occurs after encoding.
+    If the URI does not include a '?',
+    there is no query string in the request,
+    and you set the canonical query string to an empty string ("")
+    UriEncode("marker")+"="+UriEncode("someMarker")+"&"+
+    UriEncode("max-keys")+"="+UriEncode("20") + "&" +
+    */
     l_canonical_query_string := null;
     if (p_querystring is not null) and
         (p_querystring.count > 0) then
@@ -375,32 +375,32 @@ create or replace package body pkg_aws_s3 as
     end if;
 
     /*
-            CanonicalHeaders is a list of request headers with their values.
-            Individual header name and value pairs are separated by the newline character ("\n").
-            Header names must be in lowercase.
-            You must sort the header names alphabetically to construct the string
-            Lowercase(<HeaderName1>)+":"+Trim(<value>)+"\n"
-            Lowercase(<HeaderName2>)+":"+Trim(<value>)+"\n"
+    CanonicalHeaders is a list of request headers with their values.
+    Individual header name and value pairs are separated by the newline character ("\n").
+    Header names must be in lowercase.
+    You must sort the header names alphabetically to construct the string
+    Lowercase(<HeaderName1>)+":"+Trim(<value>)+"\n"
+    Lowercase(<HeaderName2>)+":"+Trim(<value>)+"\n"
 
-            The CanonicalHeaders list must include the following:
+    The CanonicalHeaders list must include the following:
 
-            HTTP host header.
+    HTTP host header.
 
-            If the Content-Type header is present in the request, you must add it to the CanonicalHeaders list.
+    If the Content-Type header is present in the request, you must add it to the CanonicalHeaders list.
 
-            Any x-amz-* headers that you plan to include in your request must also be added.
-            For example, if you are using temporary security credentials,
-            you need to include x-amz-security-token in your request
+    Any x-amz-* headers that you plan to include in your request must also be added.
+    For example, if you are using temporary security credentials,
+    you need to include x-amz-security-token in your request
 
-            The x-amz-content-sha256 header is required for all AWS Signature Version 4 requests.
-            It provides a hash of the request payload. If there is no payload,
-            you must provide the hash of an empty string.
+    The x-amz-content-sha256 header is required for all AWS Signature Version 4 requests.
+    It provides a hash of the request payload. If there is no payload,
+    you must provide the hash of an empty string.
 
-            ******
+    ******
 
-            SignedHeaders is an alphabetically sorted, semicolon-separated list of lowercase request header names.
-            The request headers in the list are the same headers that you included in the CanonicalHeaders string.
-            */
+    SignedHeaders is an alphabetically sorted, semicolon-separated list of lowercase request header names.
+    The request headers in the list are the same headers that you included in the CanonicalHeaders string.
+    */
     l_canonical_headers := null;
     l_signed_headers := '';
     if (p_headers is not null) and
@@ -419,8 +419,8 @@ create or replace package body pkg_aws_s3 as
     end if;
 
     /*
-            hashed_payload is the hexadecimal value of the SHA256 hash of the request payload.
-            */
+    hashed_payload is the hexadecimal value of the SHA256 hash of the request payload.
+    */
     l_hashed_payload := p_hashed_payload;
 
     l_return :=
@@ -435,8 +435,8 @@ create or replace package body pkg_aws_s3 as
     end canonical_request;
 
     /*
-            https://docs.aws.amazon.com/general/latest/gr/sigv4-create-string-to-sign.html
-            */
+    https://docs.aws.amazon.com/general/latest/gr/sigv4-create-string-to-sign.html
+    */
     function string_to_sign(
         p_canonical_request in varchar2,
         p_date in date)
@@ -539,7 +539,7 @@ create or replace package body pkg_aws_s3 as
 
     end authorization_string;
 
-    /*
+   /*
     https://docs.aws.amazon.com/AmazonS3/latest/dev/UsingRESTError.html
     */
     procedure raise_error_response(
@@ -550,6 +550,7 @@ create or replace package body pkg_aws_s3 as
     l_headers varchar2(4000);
     l_name varchar2(256);
     l_value varchar2(1024);
+    l_clob clob;
     begin
     l_headers := null;
     l_error := null;
@@ -670,10 +671,10 @@ create or replace package body pkg_aws_s3 as
             p_close_response in pls_integer default 0)
     return clob is
     /*
-            p_close_response
-            0 - false
-            1 - true
-            */
+    p_close_response
+    0 - false
+    1 - true
+    */
 
     l_clob clob;
     l_data varchar2(32767);
@@ -681,7 +682,6 @@ create or replace package body pkg_aws_s3 as
 
     begin
     dbms_lob.createtemporary(l_clob, false);
-    -- dbms_lob.open (l_clob, dbms_lob.lob_readwrite);
     loop
         utl_http.read_text(p_response, l_data, 32767);
         dbms_lob.writeappend(l_clob, length(l_data), l_data);
@@ -702,10 +702,10 @@ create or replace package body pkg_aws_s3 as
         p_close_response in pls_integer default 0)
     return blob is
     /*
-            p_close_response
-            0 - false
-            1 - true
-            */
+    p_close_response
+    0 - false
+    1 - true
+    */
 
     l_blob blob;
     l_data raw(32767);
@@ -713,7 +713,6 @@ create or replace package body pkg_aws_s3 as
 
     begin
     dbms_lob.createtemporary(l_blob, false);
-    -- dbms_lob.open (l_clob, dbms_lob.lob_readwrite);
     loop
         utl_http.read_raw(p_response, l_data, 32767);
         dbms_lob.writeappend(l_blob, dbms_lob.getlength(l_data), l_data);
@@ -750,7 +749,7 @@ create or replace package body pkg_aws_s3 as
     l_hashed_payload varchar2(4000);
     l_query_string t_query_string;
     begin
-
+    g_error := null;
     l_method := G_METHOD_PUT;
     l_hashed_payload := sha256_hash(p_blob);
     l_content_length := dbms_lob.getlength(p_blob);
@@ -759,20 +758,20 @@ create or replace package body pkg_aws_s3 as
     l_date := sysdate;
 
     /*
-            Common Request Headers
-            https://docs.aws.amazon.com/pt_br/AmazonS3/latest/dev/RESTAuthentication.html#ConstructingTheAuthenticationHeader
-            UTL_HTTP.SET_HEADER(req, 'Authorization', 'Mozilla/4.0');
-            UTL_HTTP.SET_HEADER(req, 'Content-Length', 'Mozilla/4.0');
-            UTL_HTTP.SET_HEADER(req, 'Content-Type', 'Mozilla/4.0');
-            UTL_HTTP.SET_HEADER(req, 'Content-MD5', 'Mozilla/4.0');
-            UTL_HTTP.SET_HEADER(req, 'Date', 'Mozilla/4.0');
-            UTL_HTTP.SET_HEADER(req, 'Expect', 'Mozilla/4.0');
-            UTL_HTTP.SET_HEADER(req, 'Host', 'Mozilla/4.0');
-            UTL_HTTP.SET_HEADER(req, 'x-amz-content-sha256', 'Mozilla/4.0');
-            UTL_HTTP.SET_HEADER(req, 'x-amz-date', 'Mozilla/4.0');
-            x-amz-storage-class: REDUCED_REDUNDANCY
-            UTL_HTTP.SET_HEADER(req, 'x-amz-security-token', 'Mozilla/4.0');
-            */
+    Common Request Headers
+    https://docs.aws.amazon.com/pt_br/AmazonS3/latest/dev/RESTAuthentication.html#ConstructingTheAuthenticationHeader
+    UTL_HTTP.SET_HEADER(req, 'Authorization', 'Mozilla/4.0');
+    UTL_HTTP.SET_HEADER(req, 'Content-Length', 'Mozilla/4.0');
+    UTL_HTTP.SET_HEADER(req, 'Content-Type', 'Mozilla/4.0');
+    UTL_HTTP.SET_HEADER(req, 'Content-MD5', 'Mozilla/4.0');
+    UTL_HTTP.SET_HEADER(req, 'Date', 'Mozilla/4.0');
+    UTL_HTTP.SET_HEADER(req, 'Expect', 'Mozilla/4.0');
+    UTL_HTTP.SET_HEADER(req, 'Host', 'Mozilla/4.0');
+    UTL_HTTP.SET_HEADER(req, 'x-amz-content-sha256', 'Mozilla/4.0');
+    UTL_HTTP.SET_HEADER(req, 'x-amz-date', 'Mozilla/4.0');
+    x-amz-storage-class: REDUCED_REDUNDANCY
+    UTL_HTTP.SET_HEADER(req, 'x-amz-security-token', 'Mozilla/4.0');
+    */
     add_header(p_headers => l_headers, p_header_name => 'Authorization');
     add_header(p_headers => l_headers, p_header_name => 'Content-Length', p_header_value => l_content_length);
     add_header(p_headers => l_headers, p_header_name => 'Content-Type', p_header_value => nvl(p_content_type, G_CONTENT_TYPE_DEFAULT));
@@ -784,19 +783,19 @@ create or replace package body pkg_aws_s3 as
     add_header(p_headers => l_headers, p_header_name => 'x-amz-storage-class', p_header_value => nvl(p_storage_class,G_STANDARD));
 
     /*
-            https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/allocation-tag-restrictions.html
-            -> Maximum key length: 128 Unicode characters
-            -> Maximum value length: 256 Unicode characters
-            -> Case sensitive
-            -> Maximum number of tags per resource: 50
-            -> Maximum active tag keys for Billing and Cost Management reports: 500
-            -> Reserved prefix—aws:
-            -> AWS-generated tag names and values are automatically assigned the aws: prefix, which you cannot assign. User-defined tag names have the prefix user: in the Cost Allocation Report.
-            -> Use each key only once for each resource. If you attempt to use the same key twice on the same resource, your request will be rejected.
-            -> You cannot tag a resource at the same time you create it. Tagging requires a separate action after the resource is created.
-            -> You cannot backdate the application of a tag. This means that tags only start appearing on your cost allocation report after you apply them, and don't appear on earlier reports.
-            -> Allowed characters are Unicode letters, whitespace, and numbers, plus the following special characters: + - = . _ : /
-            */
+    https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/allocation-tag-restrictions.html
+    -> Maximum key length: 128 Unicode characters
+    -> Maximum value length: 256 Unicode characters
+    -> Case sensitive
+    -> Maximum number of tags per resource: 50
+    -> Maximum active tag keys for Billing and Cost Management reports: 500
+    -> Reserved prefix—aws:
+    -> AWS-generated tag names and values are automatically assigned the aws: prefix, which you cannot assign. User-defined tag names have the prefix user: in the Cost Allocation Report.
+    -> Use each key only once for each resource. If you attempt to use the same key twice on the same resource, your request will be rejected.
+    -> You cannot tag a resource at the same time you create it. Tagging requires a separate action after the resource is created.
+    -> You cannot backdate the application of a tag. This means that tags only start appearing on your cost allocation report after you apply them, and don't appear on earlier reports.
+    -> Allowed characters are Unicode letters, whitespace, and numbers, plus the following special characters: + - = . _ : /
+    */
     if (p_tags is not null) then
         add_header(p_headers => l_headers, p_header_name => 'x-amz-tagging', p_header_value => p_tags);
     end if;
@@ -819,7 +818,7 @@ create or replace package body pkg_aws_s3 as
         p_headers => l_headers,
         p_blob => p_blob);
 
-    if (l_resp.status_code <> 200) then
+    if (l_resp.status_code <> utl_http.HTTP_OK) then
         l_clob := get_clob_from_response(l_resp);
         raise_error_response(l_resp,l_clob);
     end if;
@@ -847,6 +846,7 @@ create or replace package body pkg_aws_s3 as
     l_query_string t_query_string;
 
     begin
+    g_error := null;
     l_method := G_METHOD_PUT;
     l_hashed_payload := sha256_hash(p_tags);
     l_content_length := dbms_lob.getlength(p_tags);
@@ -855,20 +855,20 @@ create or replace package body pkg_aws_s3 as
     l_date := sysdate;
 
    /*
-            Common Request Headers
-            https://docs.aws.amazon.com/pt_br/AmazonS3/latest/dev/RESTAuthentication.html#ConstructingTheAuthenticationHeader
-            UTL_HTTP.SET_HEADER(req, 'Authorization', 'Mozilla/4.0');
-            UTL_HTTP.SET_HEADER(req, 'Content-Length', 'Mozilla/4.0');
-            UTL_HTTP.SET_HEADER(req, 'Content-Type', 'Mozilla/4.0');
-            UTL_HTTP.SET_HEADER(req, 'Content-MD5', 'Mozilla/4.0');
-            UTL_HTTP.SET_HEADER(req, 'Date', 'Mozilla/4.0');
-            UTL_HTTP.SET_HEADER(req, 'Expect', 'Mozilla/4.0');
-            UTL_HTTP.SET_HEADER(req, 'Host', 'Mozilla/4.0');
-            UTL_HTTP.SET_HEADER(req, 'x-amz-content-sha256', 'Mozilla/4.0');
-            UTL_HTTP.SET_HEADER(req, 'x-amz-date', 'Mozilla/4.0');
-            x-amz-storage-class: REDUCED_REDUNDANCY
-            UTL_HTTP.SET_HEADER(req, 'x-amz-security-token', 'Mozilla/4.0');
-            */
+    Common Request Headers
+    https://docs.aws.amazon.com/pt_br/AmazonS3/latest/dev/RESTAuthentication.html#ConstructingTheAuthenticationHeader
+    UTL_HTTP.SET_HEADER(req, 'Authorization', 'Mozilla/4.0');
+    UTL_HTTP.SET_HEADER(req, 'Content-Length', 'Mozilla/4.0');
+    UTL_HTTP.SET_HEADER(req, 'Content-Type', 'Mozilla/4.0');
+    UTL_HTTP.SET_HEADER(req, 'Content-MD5', 'Mozilla/4.0');
+    UTL_HTTP.SET_HEADER(req, 'Date', 'Mozilla/4.0');
+    UTL_HTTP.SET_HEADER(req, 'Expect', 'Mozilla/4.0');
+    UTL_HTTP.SET_HEADER(req, 'Host', 'Mozilla/4.0');
+    UTL_HTTP.SET_HEADER(req, 'x-amz-content-sha256', 'Mozilla/4.0');
+    UTL_HTTP.SET_HEADER(req, 'x-amz-date', 'Mozilla/4.0');
+    x-amz-storage-class: REDUCED_REDUNDANCY
+    UTL_HTTP.SET_HEADER(req, 'x-amz-security-token', 'Mozilla/4.0');
+    */
     add_header(p_headers => l_headers, p_header_name => 'Authorization');
     add_header(p_headers => l_headers, p_header_name => 'Content-Length', p_header_value => l_content_length);
     add_header(p_headers => l_headers, p_header_name => 'Content-MD5', p_header_value => l_base64_md5_hash);
@@ -894,7 +894,7 @@ create or replace package body pkg_aws_s3 as
         p_headers => l_headers,
         p_clob => p_tags);
 
-    if (l_resp.status_code <> 200) then
+    if (l_resp.status_code <> utl_http.HTTP_OK) then
         l_clob := get_clob_from_response(l_resp);
         raise_error_response(l_resp,l_clob);
     end if;
@@ -921,7 +921,7 @@ create or replace package body pkg_aws_s3 as
     l_hashed_payload varchar2(4000);
     l_query_string t_query_string;
     begin
-
+    g_error := null;
     l_method := G_METHOD_GET;
     l_hashed_payload := G_NULL_HASH;
     --l_content_length := dbms_lob.getlength(p_blob);
@@ -930,20 +930,20 @@ create or replace package body pkg_aws_s3 as
     l_date := sysdate;
 
     /*
-            Common Request Headers
-            https://docs.aws.amazon.com/pt_br/AmazonS3/latest/dev/RESTAuthentication.html#ConstructingTheAuthenticationHeader
-            UTL_HTTP.SET_HEADER(req, 'Authorization', 'Mozilla/4.0');
-            UTL_HTTP.SET_HEADER(req, 'Content-Length', 'Mozilla/4.0');
-            UTL_HTTP.SET_HEADER(req, 'Content-Type', 'Mozilla/4.0');
-            UTL_HTTP.SET_HEADER(req, 'Content-MD5', 'Mozilla/4.0');
-            UTL_HTTP.SET_HEADER(req, 'Date', 'Mozilla/4.0');
-            UTL_HTTP.SET_HEADER(req, 'Expect', 'Mozilla/4.0');
-            UTL_HTTP.SET_HEADER(req, 'Host', 'Mozilla/4.0');
-            UTL_HTTP.SET_HEADER(req, 'x-amz-content-sha256', 'Mozilla/4.0');
-            UTL_HTTP.SET_HEADER(req, 'x-amz-date', 'Mozilla/4.0');
-            x-amz-storage-class: REDUCED_REDUNDANCY
-            UTL_HTTP.SET_HEADER(req, 'x-amz-security-token', 'Mozilla/4.0');
-            */
+    Common Request Headers
+    https://docs.aws.amazon.com/pt_br/AmazonS3/latest/dev/RESTAuthentication.html#ConstructingTheAuthenticationHeader
+    UTL_HTTP.SET_HEADER(req, 'Authorization', 'Mozilla/4.0');
+    UTL_HTTP.SET_HEADER(req, 'Content-Length', 'Mozilla/4.0');
+    UTL_HTTP.SET_HEADER(req, 'Content-Type', 'Mozilla/4.0');
+    UTL_HTTP.SET_HEADER(req, 'Content-MD5', 'Mozilla/4.0');
+    UTL_HTTP.SET_HEADER(req, 'Date', 'Mozilla/4.0');
+    UTL_HTTP.SET_HEADER(req, 'Expect', 'Mozilla/4.0');
+    UTL_HTTP.SET_HEADER(req, 'Host', 'Mozilla/4.0');
+    UTL_HTTP.SET_HEADER(req, 'x-amz-content-sha256', 'Mozilla/4.0');
+    UTL_HTTP.SET_HEADER(req, 'x-amz-date', 'Mozilla/4.0');
+    x-amz-storage-class: REDUCED_REDUNDANCY
+    UTL_HTTP.SET_HEADER(req, 'x-amz-security-token', 'Mozilla/4.0');
+    */
     add_header(p_headers => l_headers, p_header_name => 'Authorization');
     --add_header(p_headers => l_headers, p_header_name => 'Content-Length', p_header_value => l_content_length);
     --add_header(p_headers => l_headers, p_header_name => 'Content-Type', p_header_value => nvl(p_content_type, G_CONTENT_TYPE_DEFAULT));
@@ -971,7 +971,7 @@ create or replace package body pkg_aws_s3 as
         p_response => l_resp,
         p_headers => l_headers);
 
-    if (l_resp.status_code = 200) then
+    if (l_resp.status_code = utl_http.HTTP_OK) then
         l_blob := get_blob_from_response(l_resp);
     else
         l_clob := get_clob_from_response(l_resp);
@@ -1001,7 +1001,7 @@ create or replace package body pkg_aws_s3 as
     l_hashed_payload varchar2(4000);
     l_query_string t_query_string;
     begin
-
+    g_error := null;
     l_method := G_METHOD_GET;
     l_hashed_payload := G_NULL_HASH;
     --l_content_length := dbms_lob.getlength(p_blob);
@@ -1011,20 +1011,20 @@ create or replace package body pkg_aws_s3 as
     l_date := sysdate;
 
     /*
-            Common Request Headers
-            https://docs.aws.amazon.com/pt_br/AmazonS3/latest/dev/RESTAuthentication.html#ConstructingTheAuthenticationHeader
-            UTL_HTTP.SET_HEADER(req, 'Authorization', 'Mozilla/4.0');
-            UTL_HTTP.SET_HEADER(req, 'Content-Length', 'Mozilla/4.0');
-            UTL_HTTP.SET_HEADER(req, 'Content-Type', 'Mozilla/4.0');
-            UTL_HTTP.SET_HEADER(req, 'Content-MD5', 'Mozilla/4.0');
-            UTL_HTTP.SET_HEADER(req, 'Date', 'Mozilla/4.0');
-            UTL_HTTP.SET_HEADER(req, 'Expect', 'Mozilla/4.0');
-            UTL_HTTP.SET_HEADER(req, 'Host', 'Mozilla/4.0');
-            UTL_HTTP.SET_HEADER(req, 'x-amz-content-sha256', 'Mozilla/4.0');
-            UTL_HTTP.SET_HEADER(req, 'x-amz-date', 'Mozilla/4.0');
-            x-amz-storage-class: REDUCED_REDUNDANCY
-            UTL_HTTP.SET_HEADER(req, 'x-amz-security-token', 'Mozilla/4.0');
-            */
+    Common Request Headers
+    https://docs.aws.amazon.com/pt_br/AmazonS3/latest/dev/RESTAuthentication.html#ConstructingTheAuthenticationHeader
+    UTL_HTTP.SET_HEADER(req, 'Authorization', 'Mozilla/4.0');
+    UTL_HTTP.SET_HEADER(req, 'Content-Length', 'Mozilla/4.0');
+    UTL_HTTP.SET_HEADER(req, 'Content-Type', 'Mozilla/4.0');
+    UTL_HTTP.SET_HEADER(req, 'Content-MD5', 'Mozilla/4.0');
+    UTL_HTTP.SET_HEADER(req, 'Date', 'Mozilla/4.0');
+    UTL_HTTP.SET_HEADER(req, 'Expect', 'Mozilla/4.0');
+    UTL_HTTP.SET_HEADER(req, 'Host', 'Mozilla/4.0');
+    UTL_HTTP.SET_HEADER(req, 'x-amz-content-sha256', 'Mozilla/4.0');
+    UTL_HTTP.SET_HEADER(req, 'x-amz-date', 'Mozilla/4.0');
+    x-amz-storage-class: REDUCED_REDUNDANCY
+    UTL_HTTP.SET_HEADER(req, 'x-amz-security-token', 'Mozilla/4.0');
+    */
     add_header(p_headers => l_headers, p_header_name => 'Authorization');
     add_header(p_headers => l_headers, p_header_name => 'Host');
     add_header(p_headers => l_headers, p_header_name => 'x-amz-content-sha256', p_header_value => l_hashed_payload);
@@ -1049,7 +1049,7 @@ create or replace package body pkg_aws_s3 as
 
     l_clob := get_clob_from_response(l_resp);
 
-    if (l_resp.status_code <> 200) then
+    if (l_resp.status_code <> utl_http.HTTP_OK) then
         raise_error_response(l_resp,l_clob);
     end if;
 
