@@ -11,6 +11,7 @@ create or replace package body pkg_aws_s3_api as
             Region AWS - Amazon Simple Storage Service (Amazon S3)
             https://docs.aws.amazon.com/pt_br/general/latest/gr/rande.html */
     g_region varchar2(40) := null;
+    g_error t_error;
     g_host_idx pls_integer;
     g_auth_idx pls_integer;
 
@@ -87,7 +88,7 @@ create or replace package body pkg_aws_s3_api as
     end set_region;
 
     procedure add_header(
-        p_headers in out nocopy t_headers_list,
+        p_headers in out nocopy t_headers,
         p_header_name varchar2,
         p_header_value varchar2 default null) is
 
@@ -111,13 +112,13 @@ create or replace package body pkg_aws_s3_api as
     p_headers(0).value := nvl(p_headers(0).value,p_headers.count());
     l_idx := p_headers.count() - p_headers(0).value + 1;
 
-    if  (lower(p_header_name) = 'host') then
+    if (lower(p_header_name) = 'host') then
         p_headers(-1).name := 'host_idx';
         p_headers(-1).value := l_idx;
         p_headers(0).value := p_headers(0).value + 1;
     end if;
 
-    if  (lower(p_header_name) = 'authorization') then
+    if (lower(p_header_name) = 'authorization') then
         p_headers(-2).name := 'authorization_idx';
         p_headers(-2).value := l_idx;
         p_headers(0).value := p_headers(0).value + 1;
@@ -146,7 +147,7 @@ create or replace package body pkg_aws_s3_api as
     if (p_char_sequence is not null) then
         for i in 1..length(p_char_sequence) loop
             l_ch := substr(p_char_sequence,i,1);
-            if  ((l_ch between 'A' and 'Z') or
+            if ((l_ch between 'A' and 'Z') or
                 (l_ch between 'a' and 'z') or
                 (l_ch between '0' and '9') or
                 (l_ch = '_') or
@@ -283,8 +284,8 @@ create or replace package body pkg_aws_s3_api as
         p_httpmethod in varchar2,
         p_bucketname in varchar2,
         p_uri in varchar2,
-        p_querystring in t_query_string_list,
-        p_headers in out nocopy t_headers_list,
+        p_querystring in t_query_string,
+        p_headers in out nocopy t_headers,
         p_hashed_payload in varchar2,
         p_date in date,
         p_url out varchar2)
@@ -316,14 +317,14 @@ create or replace package body pkg_aws_s3_api as
             to the question mark character ('?') if you have query string parameters.
             */
     l_canonical_uri := nvl(trim(p_uri),'/');
-    if  substr(p_uri,1,1) = '/' then
+    if substr(p_uri,1,1) = '/' then
         l_canonical_uri := uri_encode(p_uri,0);
     else
         l_canonical_uri := uri_encode('/'||p_uri,0);
     end if;
 
-    if  (p_bucketname is not null) then
-        if  (g_region = 'us-east-1') then
+    if (p_bucketname is not null) then
+        if (g_region = 'us-east-1') then
             l_host := p_bucketname||'.s3.amazonaws.com';
             p_url := 'https://'||p_bucketname||'.s3.amazonaws.com'||l_canonical_uri;
             -- l_host := '.s3.amazonaws.com/'||p_bucketname;
@@ -350,7 +351,7 @@ create or replace package body pkg_aws_s3_api as
             UriEncode("max-keys")+"="+UriEncode("20") + "&" +
             */
     l_canonical_query_string := null;
-    if  (p_querystring is not null) and
+    if (p_querystring is not null) and
         (p_querystring.count > 0) then
         p_url := p_url||'?';
         for i in 1 .. p_querystring.count loop
@@ -395,10 +396,10 @@ create or replace package body pkg_aws_s3_api as
             */
     l_canonical_headers := null;
     l_signed_headers := '';
-    if  (p_headers is not null) and
+    if (p_headers is not null) and
         ((p_headers.count - (p_headers(0).value)) > 0) then
         for i in 1 .. (p_headers.count - to_number(p_headers(0).value)) loop
-            if  ((lower(p_headers(i).name) in ('host',/*'content-type',*/'range','content-md5')) or
+            if ((lower(p_headers(i).name) in ('host',/*'content-type',*/'range','content-md5')) or
                 (substr(lower(p_headers(i).name),1,6) = 'x-amz-')) then
                 l_canonical_headers := l_canonical_headers ||
                 lower(p_headers(i).name)||':'||trim(p_headers(i).value)||LF;
@@ -482,8 +483,8 @@ create or replace package body pkg_aws_s3_api as
         p_httpmethod in varchar2,
         p_bucketname in varchar2,
         p_uri in varchar2,
-        p_querystring in t_query_string_list,
-        p_headers in out nocopy t_headers_list,
+        p_querystring in t_query_string,
+        p_headers in out nocopy t_headers,
         p_hashed_payload in varchar2,
         p_date in date,
         p_url out varchar2) is
@@ -512,10 +513,10 @@ create or replace package body pkg_aws_s3_api as
                         p_date => p_date);
 
     l_signed_headers := '';
-    if  (p_headers is not null) and
+    if (p_headers is not null) and
         ((p_headers.count - to_number(p_headers(0).value)) > 0) then
         for i in 1 .. (p_headers.count - to_number(p_headers(0).value)) loop
-            if  ((lower(p_headers(i).name) in ('host',/*'content-type',*/'range','content-md5')) or
+            if ((lower(p_headers(i).name) in ('host',/*'content-type',*/'range','content-md5')) or
                 (substr(lower(p_headers(i).name),1,6) = 'x-amz-')) then
                 l_signed_headers := l_signed_headers ||
                 lower(p_headers(i).name)||';';
@@ -543,11 +544,12 @@ create or replace package body pkg_aws_s3_api as
     l_value varchar2(1024);
     begin
     l_error := null;
-    if  (p_clob is not null) and
+    g_error := null;
+    if (p_clob is not null) and
         (length(p_clob) > 0) then
         begin
         l_xml := xmltype(p_clob);
-        if  l_xml.existsnode('/Error') = 1 then
+        if l_xml.existsnode('/Error') = 1 then
             for i in 1..utl_http.get_header_count(p_response) loop
                 utl_http.get_header(p_response, i, l_name, l_value);
                 l_error := substr(l_error ||CRLF|| (l_name || ': ' || l_value),1,4000);
@@ -563,7 +565,9 @@ create or replace package body pkg_aws_s3_api as
                         CRLF||
                         'ERROR = ' ||CRLF||
                         'code: ' || l_xml.extract('/Error/Code/text()').getstringval() ||CRLF||
-                        'message' || l_xml.extract('/Error/Message/text()').getstringval()||CRLF||
+                        'message: ' || l_xml.extract('/Error/Message/text()').getstringval()||CRLF||
+                        'resource: ' || l_xml.extract('/Error/Resource/text()').getstringval()||CRLF||
+                        'requestid' : || l_xml.extract('/Error/RequestId/text()').getstringval()||CRLF||
                         CRLF||
                         'BODY = ' ||CRLF||
                         dbms_lob.substr( p_clob, 4000, 1 )
@@ -583,7 +587,7 @@ create or replace package body pkg_aws_s3_api as
     procedure make_request(
         p_url in varchar2,
         p_http_method in varchar2,
-        p_headers in t_headers_list,
+        p_headers in t_headers,
         p_request in out nocopy utl_http.req,
         p_response in out nocopy utl_http.resp,
         p_blob in blob default null,
@@ -605,10 +609,10 @@ create or replace package body pkg_aws_s3_api as
 
     p_request := utl_http.begin_request(url => p_url, method => p_http_method, http_version => utl_http.http_version_1_1);
 
-    if  (p_headers is not null) and
+    if (p_headers is not null) and
         ((p_headers.count - to_number(p_headers(0).value)) > 0) then
         for i in 1 .. (p_headers.count - to_number(p_headers(0).value)) loop
-            if  lower(p_headers(i).name) <> 'host' then
+            if lower(p_headers(i).name) <> 'host' then
                 utl_http.set_header(p_request, p_headers(i).name, p_headers(i).value);
             end if;
         end loop;
@@ -719,11 +723,11 @@ create or replace package body pkg_aws_s3_api as
     l_date date;
     l_url varchar2(4000);
     l_method varchar2(6);
-    l_headers t_headers_list;
+    l_headers t_headers;
     l_content_length number(20);
     l_base64_md5_hash varchar2(1000);
     l_hashed_payload varchar2(4000);
-    l_query_string t_query_string_list;
+    l_query_string t_query_string;
     begin
 
     l_method := G_METHOD_PUT;
@@ -815,11 +819,11 @@ create or replace package body pkg_aws_s3_api as
     l_date date;
     l_url varchar2(4000);
     l_method varchar2(6);
-    l_headers t_headers_list;
+    l_headers t_headers;
     l_content_length number(20);
     l_base64_md5_hash varchar2(1000);
     l_hashed_payload varchar2(4000);
-    l_query_string t_query_string_list;
+    l_query_string t_query_string;
 
     begin
     l_method := G_METHOD_PUT;
@@ -890,11 +894,11 @@ create or replace package body pkg_aws_s3_api as
     l_date date;
     l_url varchar2(4000);
     l_method varchar2(6);
-    l_headers t_headers_list;
+    l_headers t_headers;
     l_content_length number(20);
     l_base64_md5_hash varchar2(1000);
     l_hashed_payload varchar2(4000);
-    l_query_string t_query_string_list;
+    l_query_string t_query_string;
     begin
 
     l_method := G_METHOD_GET;
@@ -946,7 +950,7 @@ create or replace package body pkg_aws_s3_api as
         p_response => l_resp,
         p_headers => l_headers);
 
-    if  (l_resp.status_code = 200) then
+    if (l_resp.status_code = 200) then
         l_blob := get_blob_from_response(l_resp);
     else
         l_clob := get_clob_from_response(l_resp);
@@ -970,11 +974,11 @@ create or replace package body pkg_aws_s3_api as
     l_date date;
     l_url varchar2(4000);
     l_method varchar2(6);
-    l_headers t_headers_list;
+    l_headers t_headers;
     l_content_length number(20);
     l_base64_md5_hash varchar2(1000);
     l_hashed_payload varchar2(4000);
-    l_query_string t_query_string_list;
+    l_query_string t_query_string;
     begin
 
     l_method := G_METHOD_GET;
@@ -1024,7 +1028,7 @@ create or replace package body pkg_aws_s3_api as
 
     l_clob := get_clob_from_response(l_resp);
 
-    if  (l_resp.status_code <> 200) then
+    if (l_resp.status_code <> 200) then
         raise_error_response(l_resp,l_clob);
     end if;
 

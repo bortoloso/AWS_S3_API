@@ -10,17 +10,31 @@ create or replace package pkg_aws_s3_api as
     G_GLACIER constant varchar2(7) := 'GLACIER';
     G_RRS constant varchar2(3) := 'RRS';
 
-    type t_headers is record (
+    type r_headers is record (
         name varchar2(256),
         value varchar2(4000)
     );
-    type t_headers_list is table of t_headers index by pls_integer;
+    type t_headers is table of r_headers index by pls_integer;
 
-    type t_query_string is record (
+    type r_query_string is record (
         name varchar2(255),
         value varchar2(255)
     );
-    type t_query_string_list is table of t_query_string index by pls_integer;
+    type t_query_string is table of r_query_string index by pls_integer;
+
+    type r_error is record (
+        status_code pls_integer,
+        reason_phrase varchar2(256),
+        http_version varchar2(64),
+        headers t_headers,
+        code varchar2(100),
+        message varchar2(1000),
+        resource varchar2(1000),
+        request_id varchar2(100),
+        xmldata xmltype
+        );
+    type t_error is table of r_error index by pls_integer;
+
 
     procedure init(
         p_acess_key_id varchar2 default null,
