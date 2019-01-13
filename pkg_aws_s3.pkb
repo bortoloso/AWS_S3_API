@@ -88,6 +88,36 @@ create or replace package body pkg_aws_s3 as
     g_region := p_region;
     end set_region;
 
+    function get_acess_key_id
+        return varchar2 is
+    begin
+    return g_acess_key_id
+    end get_acess_key_id;
+
+    function get_secrec_acess_key
+        return varchar2 id
+    begin
+    return g_secrec_acess_key;
+    end get_secrec_acess_key;
+
+    function get_wallet_path
+        return varchar2 is
+    begin
+    return g_wallet_path;
+    end get_wallet_path;
+
+    function get_wallet_password
+    return varchar2 is
+    begin
+    return g_wallet_password;
+    end get_wallet_password;
+
+    function get_region
+        return varchar2 is
+    begin
+    return g_region;
+    end get_region;
+
     function get_error_detail
         return r_error is
     begin
@@ -754,23 +784,23 @@ create or replace package body pkg_aws_s3 as
     l_hashed_payload := sha256_hash(p_blob);
     l_content_length := dbms_lob.getlength(p_blob);
     l_base64_md5_hash := base64_md5_hash(p_src => p_blob);
-    -- l_query_string.delete;
+    -- l_query_string := p_querystring;
     l_date := sysdate;
 
     /*
     Common Request Headers
     https://docs.aws.amazon.com/pt_br/AmazonS3/latest/dev/RESTAuthentication.html#ConstructingTheAuthenticationHeader
-    UTL_HTTP.SET_HEADER(req, 'Authorization', 'Mozilla/4.0');
-    UTL_HTTP.SET_HEADER(req, 'Content-Length', 'Mozilla/4.0');
-    UTL_HTTP.SET_HEADER(req, 'Content-Type', 'Mozilla/4.0');
-    UTL_HTTP.SET_HEADER(req, 'Content-MD5', 'Mozilla/4.0');
-    UTL_HTTP.SET_HEADER(req, 'Date', 'Mozilla/4.0');
-    UTL_HTTP.SET_HEADER(req, 'Expect', 'Mozilla/4.0');
-    UTL_HTTP.SET_HEADER(req, 'Host', 'Mozilla/4.0');
-    UTL_HTTP.SET_HEADER(req, 'x-amz-content-sha256', 'Mozilla/4.0');
-    UTL_HTTP.SET_HEADER(req, 'x-amz-date', 'Mozilla/4.0');
+    Authorization
+    Content-Length
+    Content-Type
+    Content-MD5
+    Date
+    Expect
+    Host
+    x-amz-content-sha256
+    x-amz-date
     x-amz-storage-class: REDUCED_REDUNDANCY
-    UTL_HTTP.SET_HEADER(req, 'x-amz-security-token', 'Mozilla/4.0');
+    x-amz-security-token
     */
     add_header(p_headers => l_headers, p_header_name => 'Authorization');
     add_header(p_headers => l_headers, p_header_name => 'Content-Length', p_header_value => l_content_length);
@@ -854,21 +884,6 @@ create or replace package body pkg_aws_s3 as
     l_query_string(1).name := 'tagging';
     l_date := sysdate;
 
-   /*
-    Common Request Headers
-    https://docs.aws.amazon.com/pt_br/AmazonS3/latest/dev/RESTAuthentication.html#ConstructingTheAuthenticationHeader
-    UTL_HTTP.SET_HEADER(req, 'Authorization', 'Mozilla/4.0');
-    UTL_HTTP.SET_HEADER(req, 'Content-Length', 'Mozilla/4.0');
-    UTL_HTTP.SET_HEADER(req, 'Content-Type', 'Mozilla/4.0');
-    UTL_HTTP.SET_HEADER(req, 'Content-MD5', 'Mozilla/4.0');
-    UTL_HTTP.SET_HEADER(req, 'Date', 'Mozilla/4.0');
-    UTL_HTTP.SET_HEADER(req, 'Expect', 'Mozilla/4.0');
-    UTL_HTTP.SET_HEADER(req, 'Host', 'Mozilla/4.0');
-    UTL_HTTP.SET_HEADER(req, 'x-amz-content-sha256', 'Mozilla/4.0');
-    UTL_HTTP.SET_HEADER(req, 'x-amz-date', 'Mozilla/4.0');
-    x-amz-storage-class: REDUCED_REDUNDANCY
-    UTL_HTTP.SET_HEADER(req, 'x-amz-security-token', 'Mozilla/4.0');
-    */
     add_header(p_headers => l_headers, p_header_name => 'Authorization');
     add_header(p_headers => l_headers, p_header_name => 'Content-Length', p_header_value => l_content_length);
     add_header(p_headers => l_headers, p_header_name => 'Content-MD5', p_header_value => l_base64_md5_hash);
@@ -924,35 +939,12 @@ create or replace package body pkg_aws_s3 as
     g_error := null;
     l_method := G_METHOD_GET;
     l_hashed_payload := G_NULL_HASH;
-    --l_content_length := dbms_lob.getlength(p_blob);
-    --l_base64_md5_hash := base64_md5_hash(p_src => p_blob);
-    -- l_query_string.delete;
     l_date := sysdate;
 
-    /*
-    Common Request Headers
-    https://docs.aws.amazon.com/pt_br/AmazonS3/latest/dev/RESTAuthentication.html#ConstructingTheAuthenticationHeader
-    UTL_HTTP.SET_HEADER(req, 'Authorization', 'Mozilla/4.0');
-    UTL_HTTP.SET_HEADER(req, 'Content-Length', 'Mozilla/4.0');
-    UTL_HTTP.SET_HEADER(req, 'Content-Type', 'Mozilla/4.0');
-    UTL_HTTP.SET_HEADER(req, 'Content-MD5', 'Mozilla/4.0');
-    UTL_HTTP.SET_HEADER(req, 'Date', 'Mozilla/4.0');
-    UTL_HTTP.SET_HEADER(req, 'Expect', 'Mozilla/4.0');
-    UTL_HTTP.SET_HEADER(req, 'Host', 'Mozilla/4.0');
-    UTL_HTTP.SET_HEADER(req, 'x-amz-content-sha256', 'Mozilla/4.0');
-    UTL_HTTP.SET_HEADER(req, 'x-amz-date', 'Mozilla/4.0');
-    x-amz-storage-class: REDUCED_REDUNDANCY
-    UTL_HTTP.SET_HEADER(req, 'x-amz-security-token', 'Mozilla/4.0');
-    */
     add_header(p_headers => l_headers, p_header_name => 'Authorization');
-    --add_header(p_headers => l_headers, p_header_name => 'Content-Length', p_header_value => l_content_length);
-    --add_header(p_headers => l_headers, p_header_name => 'Content-Type', p_header_value => nvl(p_content_type, G_CONTENT_TYPE_DEFAULT));
-    --add_header(p_headers => l_headers, p_header_name => 'Content-MD5', p_header_value => l_base64_md5_hash);
     add_header(p_headers => l_headers, p_header_name => 'Host');
     add_header(p_headers => l_headers, p_header_name => 'x-amz-content-sha256', p_header_value => l_hashed_payload);
     add_header(p_headers => l_headers, p_header_name => 'x-amz-date', p_header_value => format_iso_8601(l_date));
-
-    --add_header(p_headers => l_headers, p_header_name => 'x-amz-storage-class', p_header_value => nvl(p_storage_class,G_STANDARD));
 
     authorization_string(
         l_method,
@@ -1004,27 +996,9 @@ create or replace package body pkg_aws_s3 as
     g_error := null;
     l_method := G_METHOD_GET;
     l_hashed_payload := G_NULL_HASH;
-    --l_content_length := dbms_lob.getlength(p_blob);
-    --l_base64_md5_hash := base64_md5_hash(p_src => p_blob);
-    -- l_query_string.delete;
     l_query_string(1).name := 'tagging';
     l_date := sysdate;
 
-    /*
-    Common Request Headers
-    https://docs.aws.amazon.com/pt_br/AmazonS3/latest/dev/RESTAuthentication.html#ConstructingTheAuthenticationHeader
-    UTL_HTTP.SET_HEADER(req, 'Authorization', 'Mozilla/4.0');
-    UTL_HTTP.SET_HEADER(req, 'Content-Length', 'Mozilla/4.0');
-    UTL_HTTP.SET_HEADER(req, 'Content-Type', 'Mozilla/4.0');
-    UTL_HTTP.SET_HEADER(req, 'Content-MD5', 'Mozilla/4.0');
-    UTL_HTTP.SET_HEADER(req, 'Date', 'Mozilla/4.0');
-    UTL_HTTP.SET_HEADER(req, 'Expect', 'Mozilla/4.0');
-    UTL_HTTP.SET_HEADER(req, 'Host', 'Mozilla/4.0');
-    UTL_HTTP.SET_HEADER(req, 'x-amz-content-sha256', 'Mozilla/4.0');
-    UTL_HTTP.SET_HEADER(req, 'x-amz-date', 'Mozilla/4.0');
-    x-amz-storage-class: REDUCED_REDUNDANCY
-    UTL_HTTP.SET_HEADER(req, 'x-amz-security-token', 'Mozilla/4.0');
-    */
     add_header(p_headers => l_headers, p_header_name => 'Authorization');
     add_header(p_headers => l_headers, p_header_name => 'Host');
     add_header(p_headers => l_headers, p_header_name => 'x-amz-content-sha256', p_header_value => l_hashed_payload);
