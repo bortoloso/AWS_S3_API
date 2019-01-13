@@ -91,11 +91,11 @@ create or replace package body pkg_aws_s3 as
     function get_acess_key_id
         return varchar2 is
     begin
-    return g_acess_key_id
+    return g_acess_key_id;
     end get_acess_key_id;
 
     function get_secrec_acess_key
-        return varchar2 id
+        return varchar2 is
     begin
     return g_secrec_acess_key;
     end get_secrec_acess_key;

@@ -23,7 +23,7 @@ create or replace package pkg_aws_s3 as
     type t_query_string is table of r_query_string index by pls_integer;
 
     type r_tags is record (
-        name varchar2(255),
+        key varchar2(255),
         value varchar2(255)
     );
     type t_tags is table of r_tags index by pls_integer;
