@@ -1,23 +1,24 @@
-create or replace package body pkg_aws_s3_api as
+create or replace package body pkg_aws_s3 as
 
     /*
-            VARIABLES
-            */
+    VARIABLES
+    */
     g_acess_key_id varchar2(1000) := null;
     g_secrec_acess_key varchar2(1000) := null;
     g_wallet_path varchar2(1000) := null;
     g_wallet_password varchar2(1000) := null;
     /*
-            Region AWS - Amazon Simple Storage Service (Amazon S3)
-            https://docs.aws.amazon.com/pt_br/general/latest/gr/rande.html */
+    Region AWS - Amazon Simple Storage Service (Amazon S3)
+    https://docs.aws.amazon.com/pt_br/general/latest/gr/rande.html
+    */
     g_region varchar2(40) := null;
-    g_error t_error;
+    g_error r_error;
     g_host_idx pls_integer;
     g_auth_idx pls_integer;
 
     /*
-          CONSTANTS AUTH
-            */
+    CONSTANTS AUTH
+    */
     G_ACESS_KEY_ID_DEFAULT constant varchar2(20) := 'AKIEXAMPLE12345678A'; /* Access Key ID DEFAULT */
     G_SECREC_ACESS_KEY_DEFAULT constant varchar2(40) := 'abc123abc123abc213abc123ABC123ABC123ABC1'; /* Secret access Key DEFAULT */
     G_WALLET_PATH_DEFAULT constant varchar2(1000) := 'file:/opt/oracle/wallets/amazon_aws'; /* Wallet DEFAUL */
@@ -26,8 +27,8 @@ create or replace package body pkg_aws_s3_api as
     G_CONTENT_TYPE_DEFAULT constant varchar2(24) := 'application/octet-stream';
 
     /*
-            CONSTANTS API
-            */
+    CONSTANTS API
+    */
     G_ALGORITHM constant varchar2(16) := 'AWS4-HMAC-SHA256';
     G_DATE_FORMAT_ISO8601 constant varchar2(22) := 'YYYYMMDD"T"HH24MISS"Z"';
     G_SERVICE constant varchar2(5) := 's3';
@@ -36,8 +37,8 @@ create or replace package body pkg_aws_s3_api as
     LF constant varchar2(1) := chr(10);
     CRLF constant varchar2(2) := chr(13) || chr(10);
     /*
-            Http request method
-            */
+    Http request method
+    */
     G_METHOD_PUT constant varchar2(3) := 'PUT';
     G_METHOD_POST constant varchar2(4) := 'POST';
     G_METHOD_GET constant varchar2(3) := 'GET';
@@ -87,6 +88,12 @@ create or replace package body pkg_aws_s3_api as
     g_region := p_region;
     end set_region;
 
+    function get_error_detail
+        return r_error is
+    begin
+    return g_error;
+    end get_error_detail;
+
     procedure add_header(
         p_headers in out nocopy t_headers,
         p_header_name varchar2,
@@ -94,20 +101,20 @@ create or replace package body pkg_aws_s3_api as
 
     l_idx pls_integer;
     begin
-/*
-            Common Request Headers
-            -- https://docs.aws.amazon.com/pt_br/AmazonS3/latest/dev/RESTAuthentication.html#ConstructingTheAuthenticationHeader
-            UTL_HTTP.SET_HEADER(req, 'Authorization', 'Mozilla/4.0');
-            UTL_HTTP.SET_HEADER(req, 'Content-Length', 'Mozilla/4.0');
-            UTL_HTTP.SET_HEADER(req, 'Content-Type', 'Mozilla/4.0');
-            UTL_HTTP.SET_HEADER(req, 'Content-MD5', 'Mozilla/4.0');
-            UTL_HTTP.SET_HEADER(req, 'Date', 'Mozilla/4.0');
-            UTL_HTTP.SET_HEADER(req, 'Expect', 'Mozilla/4.0');
-            UTL_HTTP.SET_HEADER(req, 'Host', 'Mozilla/4.0');
-            UTL_HTTP.SET_HEADER(req, 'x-amz-content-sha256', 'Mozilla/4.0');
-            UTL_HTTP.SET_HEADER(req, 'x-amz-date', 'Mozilla/4.0');
-            UTL_HTTP.SET_HEADER(req, 'x-amz-security-token', 'Mozilla/4.0');
-*/
+    /*
+    Common Request Headers
+    -- https://docs.aws.amazon.com/pt_br/AmazonS3/latest/dev/RESTAuthentication.html#ConstructingTheAuthenticationHeader
+    UTL_HTTP.SET_HEADER(req, 'Authorization', 'Mozilla/4.0');
+    UTL_HTTP.SET_HEADER(req, 'Content-Length', 'Mozilla/4.0');
+    UTL_HTTP.SET_HEADER(req, 'Content-Type', 'Mozilla/4.0');
+    UTL_HTTP.SET_HEADER(req, 'Content-MD5', 'Mozilla/4.0');
+    UTL_HTTP.SET_HEADER(req, 'Date', 'Mozilla/4.0');
+    UTL_HTTP.SET_HEADER(req, 'Expect', 'Mozilla/4.0');
+    UTL_HTTP.SET_HEADER(req, 'Host', 'Mozilla/4.0');
+    UTL_HTTP.SET_HEADER(req, 'x-amz-content-sha256', 'Mozilla/4.0');
+    UTL_HTTP.SET_HEADER(req, 'x-amz-date', 'Mozilla/4.0');
+    UTL_HTTP.SET_HEADER(req, 'x-amz-security-token', 'Mozilla/4.0');
+    */
     p_headers(0).name := 'offset';
     p_headers(0).value := nvl(p_headers(0).value,p_headers.count());
     l_idx := p_headers.count() - p_headers(0).value + 1;
@@ -449,8 +456,8 @@ create or replace package body pkg_aws_s3_api as
     end string_to_sign;
 
     /*
-            https://docs.aws.amazon.com/general/latest/gr/sigv4-calculate-signature.html
-            */
+    https://docs.aws.amazon.com/general/latest/gr/sigv4-calculate-signature.html
+    */
     function signature(
         p_string_to_sign in varchar2,
         p_date in date)
@@ -463,11 +470,11 @@ create or replace package body pkg_aws_s3_api as
     l_signingkey raw(2000);
     begin
     /*
-            DateKey              = HMAC-SHA256("AWS4"+"<SecretAccessKey>", "<YYYYMMDD>")
-            DateRegionKey        = HMAC-SHA256(<DateKey>, "<aws-region>")
-            DateRegionServiceKey = HMAC-SHA256(<DateRegionKey>, "<aws-service>")
-            SigningKey           = HMAC-SHA256(<DateRegionServiceKey>, "aws4_request")
-            */
+    DateKey              = HMAC-SHA256("AWS4"+"<SecretAccessKey>", "<YYYYMMDD>")
+    DateRegionKey        = HMAC-SHA256(<DateKey>, "<aws-region>")
+    DateRegionServiceKey = HMAC-SHA256(<DateRegionKey>, "<aws-service>")
+    SigningKey           = HMAC-SHA256(<DateRegionServiceKey>, "aws4_request")
+    */
     l_datekey               := hmac_sha256(p_key_varchar2 =>  'AWS4'||g_secrec_acess_key, p_src_varchar2 => to_char(p_date, 'yyyymmdd'));
     l_dateregionkey         := hmac_sha256(p_key_raw => l_datekey, p_src_varchar2 => g_region);
     l_dateregionserviceKey  := hmac_sha256(p_key_raw => l_dateregionkey, p_src_varchar2 => G_SERVICE);
@@ -533,54 +540,68 @@ create or replace package body pkg_aws_s3_api as
     end authorization_string;
 
     /*
-            https://docs.aws.amazon.com/AmazonS3/latest/dev/UsingRESTError.html
-            */
+    https://docs.aws.amazon.com/AmazonS3/latest/dev/UsingRESTError.html
+    */
     procedure raise_error_response(
         p_response in out nocopy utl_http.resp,
         p_clob in clob) is
     l_xml xmltype;
-    l_error varchar2(4000) ;
+    l_error varchar2(4000);
+    l_headers varchar2(4000);
     l_name varchar2(256);
     l_value varchar2(1024);
     begin
+    l_headers := null;
     l_error := null;
     g_error := null;
+    g_error.http_version := p_response.http_version;
+    g_error.status_code := p_response.status_code;
+    g_error.reason_phrase := p_response.reason_phrase;
+    g_error.clobdata := p_clob;
+
+    for i in 1..utl_http.get_header_count(p_response) loop
+        utl_http.get_header(p_response, i, l_name, l_value);
+        g_error.headers(i).name := l_name;
+        g_error.headers(i).value := l_value;
+        l_headers := substr(l_headers ||CRLF|| (l_name || ': ' || l_value),1,4000);
+    end loop;
+
     if (p_clob is not null) and
-        (length(p_clob) > 0) then
+        (dbms_lob.getlength(p_clob) > 0) then
         begin
         l_xml := xmltype(p_clob);
+        g_error.xmldata := l_xml;
         if l_xml.existsnode('/Error') = 1 then
-            for i in 1..utl_http.get_header_count(p_response) loop
-                utl_http.get_header(p_response, i, l_name, l_value);
-                l_error := substr(l_error ||CRLF|| (l_name || ': ' || l_value),1,4000);
-            end loop;
+            g_error.code := l_xml.extract('/Error/Code/text()').getstringval();
+            g_error.message := l_xml.extract('/Error/Message/text()').getstringval();
             l_error := substr(
-                        'HTTP STATUS = ' ||CRLF||
+                        'HTTP STATUS =' ||CRLF||
                         'http_version: ' || p_response.http_version ||CRLF||
                         'status_code: ' || p_response.status_code ||CRLF||
                         'reason_phrase: ' || p_response.reason_phrase ||CRLF||
                         CRLF||
-                        'HEADERS = ' ||
-                        l_error||CRLF||
+                        'HEADERS =' ||
+                        l_headers||CRLF||
                         CRLF||
-                        'ERROR = ' ||CRLF||
+                        'ERROR =' ||CRLF||
                         'code: ' || l_xml.extract('/Error/Code/text()').getstringval() ||CRLF||
                         'message: ' || l_xml.extract('/Error/Message/text()').getstringval()||CRLF||
-                        'resource: ' || l_xml.extract('/Error/Resource/text()').getstringval()||CRLF||
-                        'requestid' : || l_xml.extract('/Error/RequestId/text()').getstringval()||CRLF||
+                        -- 'resource: ' || l_xml.extract('/Error/Resource/text()').getstringval()||CRLF||
+                        -- 'requestid: ' || l_xml.extract('/Error/RequestId/text()').getstringval()||CRLF||
                         CRLF||
-                        'BODY = ' ||CRLF||
-                        dbms_lob.substr( p_clob, 4000, 1 )
+                        'BODY =' ||CRLF||
+                        dbms_lob.substr(p_clob,4000,1)
                         ,1,4000);
         end if;
-       -- exception
-       -- when others then
-
+        exception
+        when others then
+            null;
         end;
-
     end if;
+
     if (l_error is not null) then
-        Raise_application_error(-20011,l_error);
+        utl_http.end_response(p_response);
+        raise_application_error(-20000,l_error);
     end if;
     end raise_error_response;
 
@@ -1037,5 +1058,5 @@ create or replace package body pkg_aws_s3_api as
     return l_clob;
     end get_object_tagging;
 
-end pkg_aws_s3_api;
+end pkg_aws_s3;
 /

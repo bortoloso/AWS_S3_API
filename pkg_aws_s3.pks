@@ -1,8 +1,8 @@
-create or replace package pkg_aws_s3_api as
+create or replace package pkg_aws_s3 as
 
     /*
-            Storage class
-            */
+    Storage class
+    */
     G_STANDARD constant varchar2(8) := 'STANDARD';
     G_STANDARD_IA constant varchar2(11) := 'STANDARD_IA';
     G_INTELLIGENT_TIERING constant varchar2(19) := 'INTELLIGENT_TIERING';
@@ -27,14 +27,14 @@ create or replace package pkg_aws_s3_api as
         reason_phrase varchar2(256),
         http_version varchar2(64),
         headers t_headers,
-        code varchar2(100),
-        message varchar2(1000),
-        resource varchar2(1000),
-        request_id varchar2(100),
-        xmldata xmltype
+        resp_code varchar2(100),
+        resp_message varchar2(1000),
+        resp_resource varchar2(1000),
+        resp_request_id varchar2(100),
+        xmldata xmltype,
+        clobdata clob
         );
-    type t_error is table of r_error index by pls_integer;
-
+    -- type t_error is table of r_error index by pls_integer;
 
     procedure init(
         p_acess_key_id varchar2 default null,
@@ -57,6 +57,9 @@ create or replace package pkg_aws_s3_api as
 
     procedure set_region(
         p_region varchar2);
+
+    function get_error_detail
+        return t_error
 
 /* https://docs.aws.amazon.com/AmazonS3/latest/API/RESTObjectPUT.html */
     procedure put_object(
@@ -85,5 +88,5 @@ create or replace package pkg_aws_s3_api as
         p_objectname varchar2)
         return clob;
 
-end pkg_aws_s3_api;
+end pkg_aws_s3;
 /
