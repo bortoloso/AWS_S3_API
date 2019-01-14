@@ -19,7 +19,7 @@ create or replace package body pkg_aws_s3 as
     /*
     CONSTANTS AUTH
     */
-    G_ACESS_KEY_ID_DEFAULT constant varchar2(20) := 'AKIEXAMPLE12345678A'; /* Access Key ID DEFAULT */
+    G_ACESS_KEY_ID_DEFAULT constant varchar2(20) := 'AKIAEXAMPLE12345678A'; /* Access Key ID DEFAULT */
     G_SECREC_ACESS_KEY_DEFAULT constant varchar2(40) := 'abc123abc123abc213abc123ABC123ABC123ABC1'; /* Secret access Key DEFAULT */
     G_WALLET_PATH_DEFAULT constant varchar2(1000) := 'file:/opt/oracle/wallets/amazon_aws'; /* Wallet DEFAUL */
     G_WALLET_PASSWORD_DEFAULT constant varchar2(1000) := 'password'; /* Wallet Password  DEFAULT*/
